@@ -1,6 +1,7 @@
 /* See LICENSE file for copyright and license details. */
 #include <stdio.h>
 #include <limits.h>
+#include <string.h>
 
 #include "../util.h"
 
@@ -11,25 +12,27 @@
 	netspeed_rx(const char *interface)
 	{
 		uintmax_t oldrxbytes;
-		static uintmax_t rxbytes;
+		static uintmax_t rxbytes[128];
 		extern const unsigned int interval;
 		char path[PATH_MAX];
 
-		oldrxbytes = rxbytes;
+        int ifid = interface[strlen(interface) - 1];
+
+		oldrxbytes = rxbytes[ifid];
 
 		if (esnprintf(path, sizeof(path),
 		              "/sys/class/net/%s/statistics/rx_bytes",
 		              interface) < 0) {
 			return NULL;
 		}
-		if (pscanf(path, "%ju", &rxbytes) != 1) {
+		if (pscanf(path, "%ju", &rxbytes[ifid]) != 1) {
 			return NULL;
 		}
 		if (oldrxbytes == 0) {
 			return NULL;
 		}
 
-		return fmt_human((rxbytes - oldrxbytes) * 1000 / interval,
+		return fmt_human((rxbytes[ifid] - oldrxbytes) * 1000 / interval,
 		                 1024);
 	}
 
@@ -37,25 +40,27 @@
 	netspeed_tx(const char *interface)
 	{
 		uintmax_t oldtxbytes;
-		static uintmax_t txbytes;
+		static uintmax_t txbytes[128];
 		extern const unsigned int interval;
 		char path[PATH_MAX];
+        
+        int ifid = interface[strlen(interface) - 1];
 
-		oldtxbytes = txbytes;
+		oldtxbytes = txbytes[ifid];
 
 		if (esnprintf(path, sizeof(path),
 		              "/sys/class/net/%s/statistics/tx_bytes",
 		              interface) < 0) {
 			return NULL;
 		}
-		if (pscanf(path, "%ju", &txbytes) != 1) {
+		if (pscanf(path, "%ju", &txbytes[ifid]) != 1) {
 			return NULL;
 		}
 		if (oldtxbytes == 0) {
 			return NULL;
 		}
 
-		return fmt_human((txbytes - oldtxbytes) * 1000 / interval,
+		return fmt_human((txbytes[ifid] - oldtxbytes) * 1000 / interval,
 		                 1024);
 	}
 #elif defined(__OpenBSD__) | defined(__FreeBSD__)
